@@ -12,24 +12,24 @@ export class BlacklistManage extends plugin {
         {
           reg: '^#加黑\\s*(\\d+)$',
           fnc: 'addBlacklist',
-          event: 'message.group',
+          event: 'message',
         },
         {
           reg: '^#删黑\\s*(\\d+)$',
           fnc: 'removeBlacklist',
-          event: 'message.group',
+          event: 'message',
         },
         {
           reg: '^#黑名单授权\\s*(\\d+)$',
           fnc: 'grantPermission',
           permission: 'master',
-          event: 'message.group',
+          event: 'message',
         },
         {
           reg: '^#黑名单取消授权\\s*(\\d+)$',
           fnc: 'revokePermission',
           permission: 'master',
-          event: 'message.group',
+          event: 'message',
         },
       ],
     })
