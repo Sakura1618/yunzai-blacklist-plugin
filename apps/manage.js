@@ -20,13 +20,13 @@ export class BlacklistManage extends plugin {
           event: 'message.group',
         },
         {
-          reg: '^#黑名授权\\s*(\\d+)$',
+          reg: '^#黑名单授权\\s*(\\d+)$',
           fnc: 'grantPermission',
           permission: 'master',
           event: 'message.group',
         },
         {
-          reg: '^#黑名取消授权\\s*(\\d+)$',
+          reg: '^#黑名单取消授权\\s*(\\d+)$',
           fnc: 'revokePermission',
           permission: 'master',
           event: 'message.group',
@@ -93,7 +93,7 @@ export class BlacklistManage extends plugin {
 
   async grantPermission(e) {
     try {
-      const qq = e.msg.match(/^#黑名授权\s*(\d+)$/)[1]
+      const qq = e.msg.match(/^#黑名单授权\s*(\d+)$/)[1]
       const permissionList = loadPermission()
 
       if (permissionList.includes(qq)) {
@@ -104,7 +104,7 @@ export class BlacklistManage extends plugin {
       permissionList.push(qq)
       savePermission(permissionList)
       await e.reply(`已授权QQ(${qq})使用黑名单管理指令`)
-      await sendNotice(e, '黑名授权', qq)
+      await sendNotice(e, '黑名单授权', qq)
       return true
     } catch (error) {
       logger.error(`授权失败 ${error}`)
@@ -115,7 +115,7 @@ export class BlacklistManage extends plugin {
 
   async revokePermission(e) {
     try {
-      const qq = e.msg.match(/^#黑名取消授权\s*(\d+)$/)[1]
+      const qq = e.msg.match(/^#黑名单取消授权\s*(\d+)$/)[1]
       const permissionList = loadPermission()
 
       if (!permissionList.includes(qq)) {
@@ -126,7 +126,7 @@ export class BlacklistManage extends plugin {
       const newList = permissionList.filter(item => item !== qq)
       savePermission(newList)
       await e.reply(`已取消授权QQ(${qq})使用黑名单管理指令`)
-      await sendNotice(e, '黑名取消授权', qq)
+      await sendNotice(e, '黑名单取消授权', qq)
       return true
     } catch (error) {
       logger.error(`取消授权失败 ${error}`)
