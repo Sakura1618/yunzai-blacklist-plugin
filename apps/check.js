@@ -1,5 +1,5 @@
 import plugin from '../../../lib/plugins/plugin.js'
-import { hasPermission, loadBlacklist, sendNotice } from './common.js'
+import { hasPermission, isProtectedUser, loadBlacklist, sendNotice } from './common.js'
 
 export class BlacklistCheck extends plugin {
   constructor() {
@@ -44,14 +44,20 @@ export class BlacklistCheck extends plugin {
     try {
       const memberMap = await e.group.getMemberMap()
       const kickTargets = []
+      const skippedTargets = []
 
       for (const [, member] of memberMap) {
         const uid = String(member.user_id || member.userId || '')
         if (!uid || uid === String(e.self_id)) continue
-        if (blacklist.includes(uid)) kickTargets.push(uid)
+        if (!blacklist.includes(uid)) continue
+        if (isProtectedUser(uid)) {
+          skippedTargets.push(uid)
+          continue
+        }
+        kickTargets.push(uid)
       }
 
-      if (!kickTargets.length) {
+      if (!kickTargets.length && !skippedTargets.length) {
         await e.reply('群内未发现黑名单成员')
         await sendNotice(e, '查黑', '未发现黑名单成员')
         return true
@@ -73,11 +79,13 @@ export class BlacklistCheck extends plugin {
       const messages = []
       if (success.length) messages.push(`已踢出黑名单成员：${success.join(', ')}`)
       if (failed.length) messages.push(`以下成员踢出失败，请手动处理：${failed.join(', ')}`)
+      if (skippedTargets.length) messages.push(`以下黑名单成员属于主人/授权名单，已跳过：${skippedTargets.join(', ')}`)
 
-      await e.reply(messages.join('\n'))
+      await e.reply(messages.join('\n') || '未执行踢出操作')
       await sendNotice(e, '查黑/踢黑', [
         success.length ? `成功：${success.join(', ')}` : '成功：无',
         failed.length ? `失败：${failed.join(', ')}` : '失败：无',
+        skippedTargets.length ? `跳过：${skippedTargets.join(', ')}` : '跳过：无',
       ])
       return true
     } catch (err) {
@@ -123,13 +131,19 @@ export class BlacklistCheck extends plugin {
         }
 
         const kickTargets = []
+        const skippedTargets = []
         for (const [, member] of memberMap) {
           const uid = String(member.user_id || member.userId || '')
           if (!uid || uid === String(e.self_id)) continue
-          if (blacklist.includes(uid)) kickTargets.push(uid)
+          if (!blacklist.includes(uid)) continue
+          if (isProtectedUser(uid)) {
+            skippedTargets.push(uid)
+            continue
+          }
+          kickTargets.push(uid)
         }
 
-        if (!kickTargets.length) {
+        if (!kickTargets.length && !skippedTargets.length) {
           summaries.push(`${groupId}: 未发现黑名单成员`)
           continue
         }
@@ -149,6 +163,7 @@ export class BlacklistCheck extends plugin {
         const parts = []
         if (success.length) parts.push(`踢出：${success.join(',')}`)
         if (failed.length) parts.push(`失败：${failed.join(',')}`)
+        if (skippedTargets.length) parts.push(`跳过：${skippedTargets.join(',')}`)
         summaries.push(`${groupId}: ${parts.join('；') || '无操作'}`)
         noticeDetails.push(`${groupId} -> ${parts.join('；') || '无操作'}`)
       }

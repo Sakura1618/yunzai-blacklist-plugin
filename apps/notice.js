@@ -1,5 +1,5 @@
 import plugin from '../../../lib/plugins/plugin.js'
-import { loadBlacklist } from './common.js'
+import { isProtectedUser, loadBlacklist } from './common.js'
 
 export class BlacklistJoinWatcher extends plugin {
   constructor() {
@@ -20,6 +20,10 @@ export class BlacklistJoinWatcher extends plugin {
     const newMemberId = this.e.user_id
 
     if (!blacklist.includes(String(newMemberId))) return
+    if (isProtectedUser(newMemberId)) {
+      await this.reply(`检测到黑名单QQ(${newMemberId})，但该用户属于主人或授权名单，已跳过踢出`)
+      return true
+    }
 
     let isAdmin = false
     try {
