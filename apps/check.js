@@ -98,6 +98,7 @@ export class BlacklistCheck extends plugin {
 
   async checkAllGroups(e) {
     const bot = e.bot || Bot
+    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
     if (!bot?.getGroupMap) {
       await e.reply('无法获取群列表，可能Bot不支持该操作')
       return false
@@ -114,8 +115,9 @@ export class BlacklistCheck extends plugin {
       const summaries = []
       const noticeDetails = []
 
-      for (const [groupId, groupObj] of groupMap || []) {
-        const group = groupObj || bot.pickGroup?.(groupId)
+      let index = 0
+      for (const [groupId] of groupMap || []) {
+        const group = bot.pickGroup?.(groupId)
         if (!group?.getMemberMap) {
           summaries.push(`${groupId}: 无法获取成员列表`)
           continue
@@ -123,10 +125,13 @@ export class BlacklistCheck extends plugin {
 
         let memberMap
         try {
+          if (index > 0) await sleep(5000)
           memberMap = await group.getMemberMap()
+          index++
         } catch (err) {
           logger.error(`获取群(${groupId})成员失败 ${err}`)
           summaries.push(`${groupId}: 成员获取失败`)
+          index++
           continue
         }
 
