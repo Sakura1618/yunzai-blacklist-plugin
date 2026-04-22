@@ -1,6 +1,9 @@
 import plugin from '../../../lib/plugins/plugin.js'
 import { hasPermission, loadBlacklist, saveBlacklist, loadPermission, savePermission, sendNotice } from './common.js'
 
+const resolveTargetQq = (e, reg) => e.msg.match(reg)?.[1] || String(e.at || '')
+const isValidTargetQq = qq => /^\d+$/.test(qq)
+
 export class BlacklistManage extends plugin {
   constructor() {
     super({
@@ -10,23 +13,23 @@ export class BlacklistManage extends plugin {
       priority: 0,
       rule: [
         {
-          reg: '^#加黑\\s*(\\d+)$',
+          reg: '^#加黑(?:\\s*(\\d+))?$',
           fnc: 'addBlacklist',
           event: 'message',
         },
         {
-          reg: '^#删黑\\s*(\\d+)$',
+          reg: '^#删黑(?:\\s*(\\d+))?$',
           fnc: 'removeBlacklist',
           event: 'message',
         },
         {
-          reg: '^#黑名单授权\\s*(\\d+)$',
+          reg: '^#黑名单授权(?:\\s*(\\d+))?$',
           fnc: 'grantPermission',
           permission: 'master',
           event: 'message',
         },
         {
-          reg: '^#黑名单取消授权\\s*(\\d+)$',
+          reg: '^#黑名单取消授权(?:\\s*(\\d+))?$',
           fnc: 'revokePermission',
           permission: 'master',
           event: 'message',
@@ -42,7 +45,12 @@ export class BlacklistManage extends plugin {
     }
 
     try {
-      const qq = e.msg.match(/^#加黑\s*(\d+)$/)[1]
+      const qq = resolveTargetQq(e, /^#加黑\s*(\d+)$/)
+      if (!isValidTargetQq(qq)) {
+        await e.reply('请发送 #加黑<QQ> 或 #加黑@群成员')
+        return false
+      }
+
       const blacklist = loadBlacklist()
 
       if (blacklist.includes(qq)) {
@@ -70,7 +78,12 @@ export class BlacklistManage extends plugin {
     }
 
     try {
-      const qq = e.msg.match(/^#删黑\s*(\d+)$/)[1]
+      const qq = resolveTargetQq(e, /^#删黑\s*(\d+)$/)
+      if (!isValidTargetQq(qq)) {
+        await e.reply('请发送 #删黑<QQ> 或 #删黑@群成员')
+        return false
+      }
+
       const blacklist = loadBlacklist()
 
       if (!blacklist.includes(qq)) {
@@ -93,7 +106,12 @@ export class BlacklistManage extends plugin {
 
   async grantPermission(e) {
     try {
-      const qq = e.msg.match(/^#黑名单授权\s*(\d+)$/)[1]
+      const qq = resolveTargetQq(e, /^#黑名单授权\s*(\d+)$/)
+      if (!isValidTargetQq(qq)) {
+        await e.reply('请发送 #黑名单授权<QQ> 或 #黑名单授权@群成员')
+        return false
+      }
+
       const permissionList = loadPermission()
 
       if (permissionList.includes(qq)) {
@@ -115,7 +133,12 @@ export class BlacklistManage extends plugin {
 
   async revokePermission(e) {
     try {
-      const qq = e.msg.match(/^#黑名单取消授权\s*(\d+)$/)[1]
+      const qq = resolveTargetQq(e, /^#黑名单取消授权\s*(\d+)$/)
+      if (!isValidTargetQq(qq)) {
+        await e.reply('请发送 #黑名单取消授权<QQ> 或 #黑名单取消授权@群成员')
+        return false
+      }
+
       const permissionList = loadPermission()
 
       if (!permissionList.includes(qq)) {
