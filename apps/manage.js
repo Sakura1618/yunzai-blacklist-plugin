@@ -1,5 +1,6 @@
 import plugin from '../../../lib/plugins/plugin.js'
 import { hasPermission, loadBlacklist, saveBlacklist, loadPermission, savePermission, sendNotice } from './common.js'
+import { runFullGroupCheck } from './check.js'
 
 const resolveTargetQq = (e, reg) => e.msg.match(reg)?.[1] || String(e.at || '')
 const isValidTargetQq = qq => /^\d+$/.test(qq)
@@ -62,6 +63,14 @@ export class BlacklistManage extends plugin {
       saveBlacklist(blacklist)
       await e.reply(`已成功添加黑名单QQ(${qq})`)
       await sendNotice(e, '加黑', qq)
+      const checkResult = await runFullGroupCheck({
+        bot: global.Bot,
+        event: e,
+        noticeAction: '加黑后全群查黑/踢黑',
+        errorAction: '加黑后全群查黑失败',
+      })
+
+      if (!checkResult.ok) return false
 
       return true
     } catch (error) {
