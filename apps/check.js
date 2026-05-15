@@ -7,10 +7,10 @@ const getFullScanBots = bot => {
   if (Array.isArray(bot?.uin) && bot?.bots) {
     return bot.uin
       .map(botId => bot.bots[botId])
-      .filter(item => item?.adapter?.id === 'QQ' && typeof item.getGroupMap === 'function')
+      .filter(item => item?.adapter?.name === 'OneBotv11' && typeof item.getGroupMap === 'function')
   }
 
-  return bot?.adapter?.id === 'QQ' && typeof bot?.getGroupMap === 'function' ? [bot] : []
+  return bot?.adapter?.name === 'OneBotv11' && typeof bot?.getGroupMap === 'function' ? [bot] : []
 }
 
 const createSystemEvent = (action, bot = global.Bot) => ({
@@ -95,7 +95,7 @@ export async function runFullGroupCheck(context = {}) {
       const groupMap = await scanBot.getGroupMap()
 
       for (const [groupId, groupInfo] of groupMap || []) {
-        if (typeof groupId === 'string' && (groupId.includes('-') || groupId === 'stdin')) continue
+        if (!/^\d+$/.test(String(groupId))) continue
         if (groupInfo?.guild) continue
 
         const group = scanBot.pickGroup?.(groupId)
