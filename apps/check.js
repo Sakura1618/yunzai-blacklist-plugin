@@ -3,6 +3,16 @@ import { getBlacklistConfig, hasPermission, isProtectedUser, loadBlacklist, send
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 
+const getFullScanBots = bot => {
+  if (Array.isArray(bot?.uin) && bot?.bots) {
+    return bot.uin
+      .map(botId => bot.bots[botId])
+      .filter(item => item?.adapter?.id === 'QQ' && typeof item.getGroupMap === 'function')
+  }
+
+  return bot?.adapter?.id === 'QQ' && typeof bot?.getGroupMap === 'function' ? [bot] : []
+}
+
 const createSystemEvent = (action, bot = global.Bot) => ({
   bot,
   self_id: bot?.uin || bot?.self_id,
@@ -61,8 +71,9 @@ async function scanGroup(group, blacklist, selfId, fallbackGroupId = '') {
 export async function runFullGroupCheck(context = {}) {
   const bot = context.bot || global.Bot
   const event = context.event || createSystemEvent(context.action || '全群查黑', bot)
+  const scanBots = getFullScanBots(bot)
 
-  if (!bot?.getGroupMap) {
+  if (!scanBots.length) {
     if (!context.silentReply) await event.reply?.('无法获取群列表，可能Bot不支持该操作')
     return { ok: false, reply: '无法获取群列表，可能Bot不支持该操作' }
   }
@@ -77,27 +88,33 @@ export async function runFullGroupCheck(context = {}) {
   const intervalMs = Math.max(0, Number(config.fullGroupMemberInterval || 1) * 1000)
 
   try {
-    const groupMap = await bot.getGroupMap()
     const results = []
     let index = 0
 
-    for (const [groupId] of groupMap || []) {
-      const group = bot.pickGroup?.(groupId)
-      if (!group?.getMemberMap) {
-        results.push({ groupId: String(groupId), success: [], failed: [], skipped: [], error: '无法获取成员列表' })
-        continue
-      }
+    for (const scanBot of scanBots) {
+      const groupMap = await scanBot.getGroupMap()
 
-      try {
-        if (index > 0 && intervalMs > 0) await sleep(intervalMs)
-        const result = await scanGroup(group, blacklist, event.self_id, groupId)
-        results.push(result)
-      } catch (err) {
-        logger.error(`获取群(${groupId})成员失败 ${err}`)
-        results.push({ groupId: String(groupId), success: [], failed: [], skipped: [], error: '成员获取失败' })
-      }
+      for (const [groupId, groupInfo] of groupMap || []) {
+        if (typeof groupId === 'string' && (groupId.includes('-') || groupId === 'stdin')) continue
+        if (groupInfo?.guild) continue
 
-      index++
+        const group = scanBot.pickGroup?.(groupId)
+        if (!group?.getMemberMap) {
+          results.push({ groupId: String(groupId), success: [], failed: [], skipped: [], error: '无法获取成员列表' })
+          continue
+        }
+
+        try {
+          if (index > 0 && intervalMs > 0) await sleep(intervalMs)
+          const result = await scanGroup(group, blacklist, event.self_id, groupId)
+          results.push(result)
+        } catch (err) {
+          logger.error(`获取群(${groupId})成员失败 ${err}`)
+          results.push({ groupId: String(groupId), success: [], failed: [], skipped: [], error: '成员获取失败' })
+        }
+
+        index++
+      }
     }
 
     const activeResults = results.filter(item => item.success.length || item.failed.length || item.skipped.length || item.error)
